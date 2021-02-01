@@ -19,7 +19,17 @@ public class ExprUtils
 {
     public static Expr toCNF(Expr expr)
     {
-        throw new UnsupportedOperationException("implement this");
+        //Stack<Expr> s = new Stack<>();
+        //s.push(expr);
+        //s.forEach(l -> System.out.print(l + "lalala\n"));
+        //while (!s.isEmpty())
+        //{
+        //     Expr e = s.pop();
+        //     System.out.println(e.toString() + "lalalala\n");
+        // }
+        //System.out.println(expr);
+        //System.out.println(expr.getKind());
+        throw new UnsupportedOperationException("Shit I dont know how to write this");
     }
 
     public static Expr toTseitin(Expr expr)

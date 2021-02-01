@@ -1,0 +1,16 @@
+VAR=1
+LPAR=2
+RPAR=3
+LNEG=4
+LOR=5
+LAND=6
+IMPL=7
+EQUIV=8
+WS=9
+'('=2
+')'=3
+'not'=4
+'or'=5
+'and'=6
+'impl'=7
+'equiv'=8

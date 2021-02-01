@@ -1,0 +1,35 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Launch Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "Launch CNFDriver",
+            "request": "launch",
+            "mainClass": "edu.utexas.cs.alr.CNFDriver",
+            "projectName": "hw2"
+        },
+        {
+            "type": "java",
+            "name": "Launch SATDriver",
+            "request": "launch",
+            "mainClass": "edu.utexas.cs.alr.SATDriver",
+            "projectName": "hw2"
+        },
+        {
+            "type": "java",
+            "name": "Launch TseitinDriver",
+            "request": "launch",
+            "mainClass": "edu.utexas.cs.alr.TseitinDriver",
+            "projectName": "hw2"
+        }
+    ]
+}

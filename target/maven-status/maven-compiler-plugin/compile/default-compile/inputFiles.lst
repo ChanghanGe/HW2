@@ -1,0 +1,16 @@
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/ImplExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/AndExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/EquivExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/util/ExprUtils.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/OrExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/SATDriver.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/TseitinDriver.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/target/generated-sources/antlr4/edu/utexas/cs/alr/parser/ExprParser.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/VarExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/target/generated-sources/antlr4/edu/utexas/cs/alr/parser/ExprLexer.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/CNFDriver.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/target/generated-sources/antlr4/edu/utexas/cs/alr/parser/ExprListener.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/Expr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/NegExpr.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/src/main/java/edu/utexas/cs/alr/ast/ExprFactory.java
+/mnt/c/Users/UT-Wireless/Documents/CS389L/HW2/target/generated-sources/antlr4/edu/utexas/cs/alr/parser/ExprBaseListener.java
