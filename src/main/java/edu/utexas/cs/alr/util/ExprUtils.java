@@ -19,26 +19,158 @@ public class ExprUtils
 {
     public static Expr toCNF(Expr expr)
     {
-        //Stack<Expr> s = new Stack<>();
-        //s.push(expr);
-        //s.forEach(l -> System.out.print(l + "lalala\n"));
-        //while (!s.isEmpty())
-        //{
-        //     Expr e = s.pop();
-        //     System.out.println(e.toString() + "lalalala\n");
-        // }
-        //System.out.println(expr);
-        //System.out.println(expr.getKind());
-        throw new UnsupportedOperationException("Shit I dont know how to write this");
+        System.out.println(expr);
+        Expr out = expr;
+
+        switch (expr.getKind())
+        {
+            case AND:
+                AndExpr andExpr = (AndExpr) expr;
+                Expr andleft = toCNF(andExpr.getLeft());
+                Expr andright = toCNF(andExpr.getRight());
+                out = mkAND(andleft, andright);
+                break;
+
+            case NEG:
+                if (isLiteral(expr))
+                    break;
+
+                Expr negExpr = ((NegExpr) expr).getExpr();
+                switch (negExpr.getKind())
+                {
+                    case AND:
+                        Expr negexprandleft = mkNEG(((AndExpr) negExpr).getLeft());
+                        Expr negexprandright = mkNEG(((AndExpr) negExpr).getRight());
+                        out = toCNF((Expr) mkOR(negexprandleft, negexprandright));
+                        break;
+                    case OR:
+                        Expr negexprorleft = mkNEG(((OrExpr) negExpr).getLeft());
+                        Expr negexprorright = mkNEG(((OrExpr) negExpr).getRight());
+                        out =  toCNF((Expr) mkAND(negexprorleft , negexprorright));
+                        break;
+                    case EQUIV:
+                        Expr negexprequivleft = mkNEG(((EquivExpr) negExpr).getLeft());
+                        Expr negexprequivright = mkNEG(((EquivExpr) negExpr).getRight());
+                        Expr leftimplright = mkIMPL(negexprequivleft, negexprequivright);
+                        Expr rightimplleft = mkIMPL(negexprequivright, negexprequivleft);
+                        out =  toCNF((Expr) mkOR(mkNEG(leftimplright), mkNEG(rightimplleft)));
+                        break;
+                    case IMPL:
+                        Expr negexprimplleft = ((ImplExpr) negExpr).getAntecedent();
+                        Expr negexprimplright = mkNEG(((ImplExpr) negExpr).getConsequent());
+                        out = toCNF((Expr) mkAND(negexprimplleft , negexprimplright));
+                        break;
+                    default:
+                        assert false;
+                }
+                break;
+
+            case VAR:
+                break;
+
+            case OR:
+                OrExpr orexpr = (OrExpr) expr;
+                Expr orleft = orexpr.getLeft();
+                Expr orright = orexpr.getRight();
+
+                if (isLiteral(orleft) && isLiteral(orright)){
+                    break;
+                }
+                else if (isLiteral(orleft) && !isLiteral(orright)){
+                    out = mkOR(orleft, toCNF(orright));
+                }
+                else if (!isLiteral(orleft) && isLiteral(orright)){
+                    out = mkOR(toCNF(orleft), orright);
+                }
+                else {
+                    switch (orleft.getKind())
+                    {
+                        case AND:
+                            Expr orleftandleft = mkNEG(((AndExpr) orleft).getLeft());
+                            Expr orleftandright = mkNEG(((AndExpr) orright).getRight());
+                            out = toCNF(mkAND(mkOR(orleftandleft, orright), mkOR(orleftandright, orright)));
+                            break;
+                        case EQUIV:
+                            out = mkOR(toCNF(orleft), mkNEG(orright));
+                            break;
+                        case IMPL:
+                            out = mkOR(toCNF(orleft), mkNEG(orright));
+                            break;
+                        default:
+                            assert false;
+                    }
+                } 
+                break;
+
+            case EQUIV:
+                EquivExpr equivExpr = (EquivExpr) expr;
+                Expr equivExprL = mkIMPL(equivExpr.getLeft(), equivExpr.getRight());
+                Expr equivExprR = mkIMPL(equivExpr.getRight(), equivExpr.getLeft());
+                out = toCNF((Expr) mkAND(equivExprL, equivExprR));
+                break;
+
+            case IMPL:
+                ImplExpr implExpr = (ImplExpr) expr;
+                out =  toCNF((Expr) mkOR(((NegExpr) implExpr.getAntecedent()).getExpr(), implExpr.getConsequent()));
+                break;
+
+            default:
+                assert false;
+        }
+        return out;
     }
 
     public static Expr toTseitin(Expr expr)
     {
-        throw new UnsupportedOperationException("implement this");
+        // First convert the propositional formula to CNF
+        // Expr cnfExpr = ExprUtils.toCNF(expr);
+
+        // Set<Expr> clauses = new HashSet<>();
+        // Set<Long> vars = new HashSet<>();
+
+        // Stack<Expr> s = new Stack<>();
+        // s.push(cnfExpr);
+
+        // while (!s.isEmpty())
+        // {
+        //     Expr e = s.pop();
+
+        //     //if (canBeCNF(e))
+        //     //    break;
+
+        //     switch (e.getKind())
+        //     {
+        //         case AND:
+        //             AndExpr andExpr = (AndExpr) e;
+        //             s.push(andExpr.getLeft());
+        //             s.push(andExpr.getRight());
+        //             break;
+        //         case VAR:
+        //             VarExpr varExpr = (VarExpr) e;
+        //             clauses.add(Collections.singleton(varExpr.getId()));
+        //             vars.add(varExpr.getId());
+        //             break;
+        //         case OR:
+        //             long id = 1;
+        //             VarExpr pg = ExprFactory.mkVAR(id);
+        //             EquivExpr equivexpr = ExprFactory.mkEQUIV(pg, e);
+        //             Expr cnfetemp = ExprUtils.toCNF(equivexpr);
+        //             clauses.add(cnfetemp);
+        //             break;
+
+        //         default:
+        //             assert false;
+        //     }
+        // }
+        
+        // Expr out = (Expr) clauses;
+        // return out;
+        return expr;
     }
 
     public static boolean checkSAT(Expr expr)
     {
+        
         throw new UnsupportedOperationException("implement this");
     }
 
