@@ -19,7 +19,7 @@ public class ExprUtils
 {
     public static Expr toCNF(Expr expr)
     {
-        System.out.println(expr);
+        //System.out.println(expr);
         Expr out = expr;
 
         switch (expr.getKind())
@@ -111,7 +111,7 @@ public class ExprUtils
 
             case IMPL:
                 ImplExpr implExpr = (ImplExpr) expr;
-                out =  toCNF((Expr) mkOR(((NegExpr) implExpr.getAntecedent()).getExpr(), implExpr.getConsequent()));
+                out =  toCNF((Expr) mkOR((mkNEG(implExpr.getAntecedent()).getExpr()), implExpr.getConsequent()));
                 break;
 
             default:
