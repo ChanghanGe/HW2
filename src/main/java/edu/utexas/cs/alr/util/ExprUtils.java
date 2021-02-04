@@ -19,9 +19,7 @@ public class ExprUtils
 {
     public static Expr toCNF(Expr expr)
     {
-        //System.out.println(expr);
         Expr out = expr;
-
         switch (expr.getKind())
         {
             case AND:
@@ -48,6 +46,9 @@ public class ExprUtils
                         Expr negexprorright = mkNEG(((OrExpr) negExpr).getRight());
                         out =  toCNF((Expr) mkAND(negexprorleft , negexprorright));
                         break;
+                    case NEG:
+                        out = toCNF(((NegExpr) negExpr).getExpr());
+                        break;
                     case EQUIV:
                         Expr negexprequivleft = mkNEG(((EquivExpr) negExpr).getLeft());
                         Expr negexprequivright = mkNEG(((EquivExpr) negExpr).getRight());
@@ -70,36 +71,70 @@ public class ExprUtils
 
             case OR:
                 OrExpr orexpr = (OrExpr) expr;
-                Expr orleft = orexpr.getLeft();
-                Expr orright = orexpr.getRight();
+                Expr orleft = toCNF(orexpr.getLeft());
+                Expr orright = toCNF(orexpr.getRight());
 
                 if (isLiteral(orleft) && isLiteral(orright)){
                     break;
                 }
                 else if (isLiteral(orleft) && !isLiteral(orright)){
-                    out = mkOR(orleft, toCNF(orright));
-                }
-                else if (!isLiteral(orleft) && isLiteral(orright)){
-                    out = mkOR(toCNF(orleft), orright);
-                }
-                else {
-                    switch (orleft.getKind())
+                    switch (orright.getKind())
                     {
                         case AND:
-                            Expr orleftandleft = mkNEG(((AndExpr) orleft).getLeft());
-                            Expr orleftandright = mkNEG(((AndExpr) orright).getRight());
-                            out = toCNF(mkAND(mkOR(orleftandleft, orright), mkOR(orleftandright, orright)));
+                            Expr orrightandleft = ((AndExpr) orright).getLeft();
+                            Expr orrightandright = ((AndExpr) orright).getRight();
+                            out = mkAND(mkOR(orleft, orrightandleft), mkOR(orleft, orrightandright));
                             break;
-                        case EQUIV:
-                            out = mkOR(toCNF(orleft), mkNEG(orright));
-                            break;
-                        case IMPL:
-                            out = mkOR(toCNF(orleft), mkNEG(orright));
+                        case OR:
+                            out = mkOR(orleft, orright);
                             break;
                         default:
                             assert false;
                     }
-                } 
+                }
+                else if (!isLiteral(orleft) && isLiteral(orright)){
+                    switch (orleft.getKind())
+                    {
+                        case AND:
+                            Expr orleftandleft = ((AndExpr) orleft).getLeft();
+                            Expr orleftandright = ((AndExpr) orleft).getRight();
+                            out = mkAND(mkOR(orleftandleft, orright), mkOR(orleftandright, orright));
+                            break;
+                        case OR:
+                            out = mkOR(orleft, orright);
+                            break;
+                        default:
+                            assert false;
+                    }
+                }
+                else{
+                    Expr.ExprKind leftKind = orleft.getKind();
+                    Expr.ExprKind rightKind = orright.getKind();
+
+                    if (leftKind == Expr.ExprKind.AND && rightKind == Expr.ExprKind.AND){
+                        Expr orleftandleft = toCNF(((AndExpr) orleft).getLeft());
+                        Expr orleftandright = toCNF(((AndExpr) orleft).getRight());
+                        Expr orrightandleft = toCNF(((AndExpr) orright).getLeft());
+                        Expr orrightandright = toCNF(((AndExpr) orright).getRight());
+                        Expr out1 = mkAND(mkOR(orleftandleft, orrightandleft),mkOR(orleftandleft, orrightandright));
+                        Expr out2 = mkAND(mkOR(orleftandright, orrightandleft),mkOR(orleftandright, orrightandright));
+                        out = toCNF(mkAND(out1, out2));
+                    }
+                    else if (leftKind == Expr.ExprKind.OR && rightKind == Expr.ExprKind.AND){
+                        Expr orrightandleft = toCNF(((AndExpr) orright).getLeft());
+                        Expr orrightandright = toCNF(((AndExpr) orright).getRight());
+                        out = toCNF(mkAND(mkOR(orleft, orrightandleft),mkOR(orleft, orrightandright)));
+                    }
+                    else if (leftKind == Expr.ExprKind.AND && rightKind == Expr.ExprKind.OR){
+                        Expr orleftandleft = toCNF(((AndExpr) orleft).getLeft());
+                        Expr orleftandright = toCNF(((AndExpr) orleft).getRight());
+                        out = toCNF(mkAND(mkOR(orleftandleft, orright),mkOR(orleftandright, orright)));
+                    }
+                    else{
+                        out = mkOR(orleft, orright);
+                        break;
+                    }
+                }
                 break;
 
             case EQUIV:
@@ -111,7 +146,7 @@ public class ExprUtils
 
             case IMPL:
                 ImplExpr implExpr = (ImplExpr) expr;
-                out =  toCNF((Expr) mkOR((mkNEG(implExpr.getAntecedent()).getExpr()), implExpr.getConsequent()));
+                out =  toCNF((Expr) mkOR(mkNEG(implExpr.getAntecedent()), implExpr.getConsequent()));
                 break;
 
             default:
@@ -192,6 +227,7 @@ public class ExprUtils
 
     public static void printDimcas(Expr expr, PrintStream out)
     {
+        //System.out.println(expr);
         Set<Set<Long>> clauses = new HashSet<>();
         Set<Long> vars = new HashSet<>();
 
