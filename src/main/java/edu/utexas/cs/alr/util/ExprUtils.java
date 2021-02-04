@@ -26,13 +26,27 @@ public class ExprUtils
                 AndExpr andExpr = (AndExpr) expr;
                 Expr andleft = toCNF(andExpr.getLeft());
                 Expr andright = toCNF(andExpr.getRight());
-                out = mkAND(andleft, andright);
+
+                Expr.ExprKind andleftKind = andleft.getKind();
+                Expr.ExprKind andrightKind = andright.getKind();
+
+                if (andleftKind == Expr.ExprKind.OR && andrightKind == Expr.ExprKind.AND){
+                    Expr andrightandleft = toCNF(((AndExpr) andright).getLeft());
+                    Expr andrightandright = toCNF(((AndExpr) andright).getRight());
+                    out = toCNF(mkAND(mkAND(andleft, andrightandleft),mkAND(andleft, andrightandright)));
+                }
+                else if (andleftKind == Expr.ExprKind.AND && andrightKind == Expr.ExprKind.OR){
+                    Expr andleftandleft = toCNF(((AndExpr) andleft).getLeft());
+                    Expr andleftandright = toCNF(((AndExpr) andleft).getRight());
+                    out = toCNF(mkAND(mkAND(andleftandleft, andright),mkAND(andleftandright,andright)));
+                }
+                else{
+                    out = mkAND(andleft, andright);
+                    break;
+                }
                 break;
 
             case NEG:
-                if (isLiteral(expr))
-                    break;
-
                 Expr negExpr = ((NegExpr) expr).getExpr();
                 switch (negExpr.getKind())
                 {
@@ -73,17 +87,21 @@ public class ExprUtils
                 OrExpr orexpr = (OrExpr) expr;
                 Expr orleft = toCNF(orexpr.getLeft());
                 Expr orright = toCNF(orexpr.getRight());
+                // System.out.println('\n');
+                // System.out.println(orleft);
+                // System.out.println(orright);
 
                 if (isLiteral(orleft) && isLiteral(orright)){
+                    out = mkOR(orleft, orright);
                     break;
                 }
                 else if (isLiteral(orleft) && !isLiteral(orright)){
                     switch (orright.getKind())
                     {
                         case AND:
-                            Expr orrightandleft = ((AndExpr) orright).getLeft();
-                            Expr orrightandright = ((AndExpr) orright).getRight();
-                            out = mkAND(mkOR(orleft, orrightandleft), mkOR(orleft, orrightandright));
+                            Expr orrightandleft = toCNF(((AndExpr) orright).getLeft());
+                            Expr orrightandright = toCNF(((AndExpr) orright).getRight());
+                            out = toCNF(mkAND(mkOR(orleft, orrightandleft), mkOR(orleft, orrightandright)));
                             break;
                         case OR:
                             out = mkOR(orleft, orright);
@@ -96,9 +114,9 @@ public class ExprUtils
                     switch (orleft.getKind())
                     {
                         case AND:
-                            Expr orleftandleft = ((AndExpr) orleft).getLeft();
-                            Expr orleftandright = ((AndExpr) orleft).getRight();
-                            out = mkAND(mkOR(orleftandleft, orright), mkOR(orleftandright, orright));
+                            Expr orleftandleft = toCNF(((AndExpr) orleft).getLeft());
+                            Expr orleftandright = toCNF(((AndExpr) orleft).getRight());
+                            out = toCNF(mkAND(mkOR(orleftandleft, orright), mkOR(orleftandright, orright)));
                             break;
                         case OR:
                             out = mkOR(orleft, orright);
@@ -227,7 +245,7 @@ public class ExprUtils
 
     public static void printDimcas(Expr expr, PrintStream out)
     {
-        //System.out.println(expr);
+        System.out.println(expr);
         Set<Set<Long>> clauses = new HashSet<>();
         Set<Long> vars = new HashSet<>();
 
@@ -238,8 +256,10 @@ public class ExprUtils
         {
             Expr e = s.pop();
 
-            if (!canBeCNF(e))
-                throw new RuntimeException("Expr is not in CNF.");
+            if (!canBeCNF(e)){
+                out.println("canbe!\n");
+                out.println(e);
+                throw new RuntimeException("Expr is not in CNF.");}
 
             switch (e.getKind())
             {
@@ -249,8 +269,10 @@ public class ExprUtils
                     s.push(andExpr.getRight());
                     break;
                 case NEG:
-                    if (!isLiteral(e))
-                        throw new RuntimeException("Expr is not in CNF.");
+                    if (!isLiteral(e)){
+                        out.println("NegFault!\n");
+                        out.println(e);
+                        throw new RuntimeException("Expr is not in CNF.");}
 
                     VarExpr childVarExpr = (VarExpr) ((NegExpr) e).getExpr();
 
@@ -310,8 +332,10 @@ public class ExprUtils
         {
             Expr e = s.pop();
 
-            if (e.getKind() != Expr.ExprKind.OR && !isLiteral(e))
-                throw new RuntimeException("Expr is not in CNF");
+            if (e.getKind() != Expr.ExprKind.OR && !isLiteral(e)){
+                System.out.println("LiteralsFault!\n");
+                System.out.println(e);
+                throw new RuntimeException("Expr is not in CNF");}
 
             switch (e.getKind())
             {
