@@ -175,50 +175,30 @@ public class ExprUtils
 
     public static Expr toTseitin(Expr expr)
     {
-        // First convert the propositional formula to CNF
-        // Expr cnfExpr = ExprUtils.toCNF(expr);
-
-        // Set<Expr> clauses = new HashSet<>();
-        // Set<Long> vars = new HashSet<>();
-
-        // Stack<Expr> s = new Stack<>();
-        // s.push(cnfExpr);
-
-        // while (!s.isEmpty())
-        // {
-        //     Expr e = s.pop();
-
-        //     //if (canBeCNF(e))
-        //     //    break;
-
-        //     switch (e.getKind())
-        //     {
-        //         case AND:
-        //             AndExpr andExpr = (AndExpr) e;
-        //             s.push(andExpr.getLeft());
-        //             s.push(andExpr.getRight());
-        //             break;
-        //         case VAR:
-        //             VarExpr varExpr = (VarExpr) e;
-        //             clauses.add(Collections.singleton(varExpr.getId()));
-        //             vars.add(varExpr.getId());
-        //             break;
-        //         case OR:
-        //             long id = 1;
-        //             VarExpr pg = ExprFactory.mkVAR(id);
-        //             EquivExpr equivexpr = ExprFactory.mkEQUIV(pg, e);
-        //             Expr cnfetemp = ExprUtils.toCNF(equivexpr);
-        //             clauses.add(cnfetemp);
-        //             break;
-
-        //         default:
-        //             assert false;
-        //     }
-        // }
-        
-        // Expr out = (Expr) clauses;
-        // return out;
-        return expr;
+        int varid = -1;
+        Expr out = toCNF(mkEQUIV(mkVAR(varid), expr));
+        varid = varid - 1;
+        switch (expr.getKind())
+        {
+            case AND:
+                AndExpr andExpr = (AndExpr) expr;
+                Expr andleft = andExpr.getLeft();
+                Expr andright = andExpr.getRight();
+                out = mkAND(out, toCNF(mkEQUIV(mkVAR(varid), andleft)));
+                varid = varid - 1;
+                out = mkAND(out, toCNF(mkEQUIV(mkVAR(varid), andright)));
+                varid = varid - 1;
+                break;
+            case NEG:   
+                break;
+            case VAR:
+                break;
+            case OR:
+                break;
+            default:
+                assert false;
+        }
+        return out;
     }
 
     public static boolean checkSAT(Expr expr)
@@ -256,10 +236,8 @@ public class ExprUtils
         {
             Expr e = s.pop();
 
-            if (!canBeCNF(e)){
-                out.println("canbe!\n");
-                out.println(e);
-                throw new RuntimeException("Expr is not in CNF.");}
+            if (!canBeCNF(e))
+                throw new RuntimeException("Expr is not in CNF.");
 
             switch (e.getKind())
             {
@@ -269,10 +247,8 @@ public class ExprUtils
                     s.push(andExpr.getRight());
                     break;
                 case NEG:
-                    if (!isLiteral(e)){
-                        out.println("NegFault!\n");
-                        out.println(e);
-                        throw new RuntimeException("Expr is not in CNF.");}
+                    if (!isLiteral(e))
+                        throw new RuntimeException("Expr is not in CNF.");
 
                     VarExpr childVarExpr = (VarExpr) ((NegExpr) e).getExpr();
 
@@ -332,10 +308,8 @@ public class ExprUtils
         {
             Expr e = s.pop();
 
-            if (e.getKind() != Expr.ExprKind.OR && !isLiteral(e)){
-                System.out.println("LiteralsFault!\n");
-                System.out.println(e);
-                throw new RuntimeException("Expr is not in CNF");}
+            if (e.getKind() != Expr.ExprKind.OR && !isLiteral(e))
+                throw new RuntimeException("Expr is not in CNF");
 
             switch (e.getKind())
             {
