@@ -1,6 +1,7 @@
 package edu.utexas.cs.alr.util;
 
 import edu.utexas.cs.alr.ast.*;
+import edu.utexas.cs.alr.satsolver.*;
 import edu.utexas.cs.alr.parser.ExprBaseListener;
 import edu.utexas.cs.alr.parser.ExprLexer;
 import edu.utexas.cs.alr.parser.ExprParser;
@@ -90,9 +91,6 @@ public class ExprUtils
                 OrExpr orexpr = (OrExpr) expr;
                 Expr orleft = toCNF(orexpr.getLeft());
                 Expr orright = toCNF(orexpr.getRight());
-                // System.out.println('\n');
-                // System.out.println(orleft);
-                // System.out.println(orright);
 
                 if (isLiteral(orleft) && isLiteral(orright)){
                     out = mkOR(orleft, orright);
@@ -375,13 +373,24 @@ public class ExprUtils
     
     public static boolean checkSAT(Expr expr)
     {
-        Set<Set<Long>> clauses = getClauses(expr);
+        Formula formula  = getClauses(expr);
 
-        
-        return true;
+        SatSolver solver = new CdclSolver()
+            .with(new PureLiteralElimination())
+            .with(new HybridVsidsPicker(0.1f))
+            .with(new TwoWatchedLiteralPropagator())
+            .with(new ClauseLearningWithUip());
+
+        Assignment assignment = solver.solve(formula);
+
+        boolean satisfiability = false;
+        if (assignment!=null)
+            satisfiability = true;
+
+        return satisfiability;
     }
 
-    public static Set<Set<Long>> getClauses(Expr expr)
+    public static Formula getClauses(Expr expr)
     {
         Expr eqsatExpr = toTseitin(expr);
 
@@ -403,9 +412,6 @@ public class ExprUtils
                     s.push(andExpr.getRight());
                     break;
                 case NEG:
-                    if (!isLiteral(e))
-                        throw new RuntimeException("Expr is not in CNF.");
-
                     VarExpr childVarExpr = (VarExpr) ((NegExpr) e).getExpr();
 
                     clauses.add(Collections.singleton(-childVarExpr.getId()));
@@ -423,8 +429,19 @@ public class ExprUtils
                     assert false;
             }
         }
-        
-        return clauses;
+
+        Formula formula = new Formula(vars.size());
+
+        for (Set<Long> c : clauses) {
+            Clause clause = new Clause(vars.size());
+
+            for (Long v : c){
+                clause.add(new Literal(v.intValue()));
+            }
+            formula.add(clause);
+        }
+
+        return formula;
     }
 
     public static long getLagestVarId(Expr expr)
