@@ -1,6 +1,7 @@
-edu/utexas/cs/alr/ast/Expr$ExprKind.class
-edu/utexas/cs/alr/ast/ExprFactory.class
 edu/utexas/cs/alr/ast/ImplExpr.class
 edu/utexas/cs/alr/ast/AndExpr.class
+edu/utexas/cs/alr/ast/ExprFactory.class
+edu/utexas/cs/alr/ast/Expr$ExprKind.class
 edu/utexas/cs/alr/ast/OrExpr.class
+edu/utexas/cs/alr/util/ExprUtils$1.class
 edu/utexas/cs/alr/ast/Expr.class

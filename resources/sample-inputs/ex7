@@ -1,0 +1,1 @@
+(and (and (impl x1 (not x2)) x1) x2)

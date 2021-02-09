@@ -7,11 +7,14 @@ import edu.utexas.cs.alr.parser.ExprParser;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.graalvm.compiler.nodes.extended.GetClassNode;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.util.*;
+
+import javax.lang.model.util.ElementScanner6;
 
 import static edu.utexas.cs.alr.ast.ExprFactory.*;
 
@@ -175,36 +178,296 @@ public class ExprUtils
 
     public static Expr toTseitin(Expr expr)
     {
-        int varid = -1;
-        Expr out = toCNF(mkEQUIV(mkVAR(varid), expr));
-        varid = varid - 1;
-        switch (expr.getKind())
+        long newvarid = getLagestVarId(expr);
+        if (newvarid==1)
+            return expr;
+
+        Stack<Expr> s = new Stack<>();
+        Stack<Long> v = new Stack<>();
+
+
+        Expr out = mkVAR(newvarid+1);
+        s.push(expr);
+        v.push(++newvarid);
+
+        while (!s.isEmpty())
         {
-            case AND:
-                AndExpr andExpr = (AndExpr) expr;
-                Expr andleft = andExpr.getLeft();
-                Expr andright = andExpr.getRight();
-                out = mkAND(out, toCNF(mkEQUIV(mkVAR(varid), andleft)));
-                varid = varid - 1;
-                out = mkAND(out, toCNF(mkEQUIV(mkVAR(varid), andright)));
-                varid = varid - 1;
-                break;
-            case NEG:   
-                break;
-            case VAR:
-                break;
-            case OR:
-                break;
-            default:
-                assert false;
+            Expr e = s.pop();
+            Long id = v.pop();
+
+            switch (e.getKind())
+            {
+                case AND:
+                    AndExpr andExpr = (AndExpr) e;
+                    Expr andleft = andExpr.getLeft();
+                    Expr andright = andExpr.getRight();
+                    
+                    if (andleft.getKind()!=Expr.ExprKind.VAR && andright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(andleft);
+                        Long newandleftid = ++newvarid;
+                        v.push(newandleftid);
+
+                        s.push(andright);
+                        Long newandrightid = ++newvarid;
+                        v.push(newandrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkAND(mkVAR(newandleftid), mkVAR(newandrightid)))));
+                    }
+                    else if (andleft.getKind()==Expr.ExprKind.VAR && andright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(andright);
+                        Long newandrightid = ++newvarid;
+                        v.push(newandrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkAND(andleft, mkVAR(newandrightid)))));
+                    }
+                    else if (andleft.getKind()!=Expr.ExprKind.VAR && andright.getKind()==Expr.ExprKind.VAR)
+                    {
+                        s.push(andleft);
+                        Long newandleftid = ++newvarid;
+                        v.push(newandleftid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkAND(mkVAR(newandleftid),andright))));
+                    }
+                    else
+                    {
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),e)));
+                    }
+                    break;
+                case NEG:
+                    Expr negExpr = ((NegExpr) e).getExpr();
+                    if (negExpr.getKind()!=Expr.ExprKind.VAR){
+                        s.push(negExpr);
+                        Long newnegid = ++newvarid;
+                        v.push(newnegid);
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkNEG(mkVAR(newnegid)))));
+                    }
+                    else
+                    {
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),e)));
+                    }
+                        
+                    break;
+                case VAR:
+                    out = mkAND(out, e);
+                    break;
+                case OR:
+                    OrExpr orExpr = (OrExpr) e;
+                    Expr orleft = orExpr.getLeft();
+                    Expr orright = orExpr.getRight();
+                    
+                    if (orleft.getKind()!=Expr.ExprKind.VAR && orright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(orleft);
+                        Long neworleftid = ++newvarid;
+                        v.push(neworleftid);
+
+                        s.push(orright);
+                        Long neworrightid = ++newvarid;
+                        v.push(neworrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkOR(mkVAR(neworleftid), mkVAR(neworrightid)))));
+                    }
+                    else if (orleft.getKind()==Expr.ExprKind.VAR && orright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(orright);
+                        Long neworrightid = ++newvarid;
+                        v.push(neworrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkOR(orleft, mkVAR(neworrightid)))));
+                    }
+                    else if (orleft.getKind()!=Expr.ExprKind.VAR && orright.getKind()==Expr.ExprKind.VAR)
+                    {
+                        s.push(orleft);
+                        Long neworleftid = ++newvarid;
+                        v.push(neworleftid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkOR(mkVAR(neworleftid),orright))));
+                    }
+                    else
+                    {
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),e)));
+                    }
+                    break;
+                case IMPL:
+                    ImplExpr implExpr = (ImplExpr) e;
+                    Expr implleft = implExpr.getAntecedent();
+                    Expr implright = implExpr.getConsequent();
+
+                    if (implleft.getKind()!=Expr.ExprKind.VAR && implright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(implleft);
+                        Long newimplleftid = ++newvarid;
+                        v.push(newimplleftid);
+
+                        s.push(implright);
+                        Long newimplrightid = ++newvarid;
+                        v.push(newimplrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkIMPL(mkVAR(newimplleftid), mkVAR(newimplrightid)))));
+                    }
+                    else if (implleft.getKind()==Expr.ExprKind.VAR && implright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(implright);
+                        Long newimplrightid = ++newvarid;
+                        v.push(newimplrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkIMPL(implleft, mkVAR(newimplrightid)))));
+                    }
+                    else if (implleft.getKind()!=Expr.ExprKind.VAR && implright.getKind()==Expr.ExprKind.VAR)
+                    {
+                        s.push(implleft);
+                        Long newimplleftid = ++newvarid;
+                        v.push(newimplleftid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkIMPL(mkVAR(newimplleftid),implright))));
+                    }
+                    else
+                    {
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),e)));
+                    }
+                    break;
+                case EQUIV:
+                    EquivExpr equivExpr = (EquivExpr) e;
+                    Expr equivleft = equivExpr.getLeft();
+                    Expr equivright = equivExpr.getRight();
+
+                    if (equivleft.getKind()!=Expr.ExprKind.VAR && equivright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(equivleft);
+                        Long newequivleftid = ++newvarid;
+                        v.push(newequivleftid);
+
+                        s.push(equivright);
+                        Long newequivrightid = ++newvarid;
+                        v.push(newequivrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkEQUIV(mkVAR(newequivleftid), mkVAR(newequivrightid)))));
+                    }
+                    else if (equivleft.getKind()==Expr.ExprKind.VAR && equivright.getKind()!=Expr.ExprKind.VAR)
+                    {
+                        s.push(equivright);
+                        Long newequivrightid = ++newvarid;
+                        v.push(newequivrightid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkEQUIV(equivleft, mkVAR(newequivrightid)))));
+                    }
+                    else if (equivleft.getKind()!=Expr.ExprKind.VAR && equivright.getKind()==Expr.ExprKind.VAR)
+                    {
+                        s.push(equivleft);
+                        Long newequivleftid = ++newvarid;
+                        v.push(newequivleftid);
+
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),mkEQUIV(mkVAR(newequivleftid),equivright))));
+                    }
+                    else
+                    {
+                        out = mkAND(out, toCNF(mkEQUIV(mkVAR(id),e)));
+                    }
+                    break;
+                default:
+                    assert false;
+            }
         }
         return out;
     }
-
+    
     public static boolean checkSAT(Expr expr)
     {
+        Set<Set<Long>> clauses = getClauses(expr);
+
         
-        throw new UnsupportedOperationException("implement this");
+        return true;
+    }
+
+    public static Set<Set<Long>> getClauses(Expr expr)
+    {
+        Expr eqsatExpr = toTseitin(expr);
+
+        Set<Set<Long>> clauses = new HashSet<>();
+        Set<Long> vars = new HashSet<>();
+
+        Stack<Expr> s = new Stack<>();
+        s.push(eqsatExpr);
+
+        while (!s.isEmpty())
+        {
+            Expr e = s.pop();
+
+            switch (e.getKind())
+            {
+                case AND:
+                    AndExpr andExpr = (AndExpr) e;
+                    s.push(andExpr.getLeft());
+                    s.push(andExpr.getRight());
+                    break;
+                case NEG:
+                    if (!isLiteral(e))
+                        throw new RuntimeException("Expr is not in CNF.");
+
+                    VarExpr childVarExpr = (VarExpr) ((NegExpr) e).getExpr();
+
+                    clauses.add(Collections.singleton(-childVarExpr.getId()));
+                    vars.add(childVarExpr.getId());
+                    break;
+                case VAR:
+                    VarExpr varExpr = (VarExpr) e;
+                    clauses.add(Collections.singleton(varExpr.getId()));
+                    vars.add(varExpr.getId());
+                    break;
+                case OR:
+                    clauses.add(getLiteralsForClause((OrExpr) e, vars));
+                    break;
+                default:
+                    assert false;
+            }
+        }
+        
+        return clauses;
+    }
+
+    public static long getLagestVarId(Expr expr)
+    {
+        long maxid = 0;
+
+        Stack<Expr> s = new Stack<>();
+
+        Expr cnfExpr = toCNF(expr);
+
+        s.push(cnfExpr);
+
+        while (!s.isEmpty())
+        {
+            Expr e = s.pop();
+
+            switch (e.getKind())
+            {
+                case AND:
+                    AndExpr andExpr = (AndExpr) e;
+                    s.push(andExpr.getLeft());
+                    s.push(andExpr.getRight());
+                    break;
+                case NEG:
+                    VarExpr childVarExpr = (VarExpr) ((NegExpr) e).getExpr();
+                    if (childVarExpr.getId() > maxid)
+                        maxid = childVarExpr.getId();
+                    break;
+                case VAR:
+                    VarExpr varExpr = (VarExpr) e;
+                    if (varExpr.getId() > maxid)
+                        maxid = varExpr.getId();
+                    break;
+                case OR:
+                    OrExpr orExpr = (OrExpr) e;
+                    s.push(orExpr.getLeft());
+                    s.push(orExpr.getRight());;
+                    break;
+                default:
+                    assert false;
+            }
+        }
+        return maxid;
     }
 
     public static Expr parseFrom(InputStream inStream) throws IOException
@@ -225,7 +488,7 @@ public class ExprUtils
 
     public static void printDimcas(Expr expr, PrintStream out)
     {
-        System.out.println(expr);
+        //System.out.println(expr);
         Set<Set<Long>> clauses = new HashSet<>();
         Set<Long> vars = new HashSet<>();
 
